@@ -63,7 +63,7 @@ func (s Stack) IsEmpty() bool {
 }
 
 type VariableListNoder interface {
-	Add(string, float64)
+	Set(string, float64)
 	Get(string)
 }
 
@@ -73,9 +73,10 @@ type VariableListNode struct {
 	value float64
 }
 
-func (n *VariableListNode) Add(name string, value float64) bool {
+// returns true if call adds a new element to list
+func (n *VariableListNode) Set(name string, value float64) bool {
 	c := n
-	for ; c.next != nil; c = c.next {
+	for ; c != nil; c = c.next {
 		if c.name == name {
 			c.value = value
 			return false
@@ -95,10 +96,11 @@ func (n *VariableListNode) Get(name string) *VariableListNode {
 }
 
 type RPNCalculatorer interface {
-	AddVariable(string, float64)
+	SetVariable(string, float64)
 	GetVariable(string)
 	StackPtr()
 	VarCount()
+	PrintList()
 }
 
 type RPNCalculator struct {
@@ -107,12 +109,16 @@ type RPNCalculator struct {
 	vsize     int
 }
 
-func (calc *RPNCalculator) AddVariable(name string, value float64) {
+func ConstructCalculator() RPNCalculator {
+	return RPNCalculator{CreateStack(), nil, 0}
+}
+
+func (calc *RPNCalculator) SetVariable(name string, value float64) {
 	if calc.variables == nil {
 		calc.variables = &VariableListNode{nil, name, value}
 		calc.vsize++
 	} else {
-		if calc.variables.Add(name, value) {
+		if calc.variables.Set(name, value) {
 			calc.vsize++
 		}
 	}
@@ -126,8 +132,12 @@ func (calc *RPNCalculator) GetVariable(name string) *VariableListNode {
 	}
 }
 
-func ConstructCalculator() RPNCalculator {
-	return RPNCalculator{CreateStack(), nil, 0}
+func (calc RPNCalculator) PrintVariables() {
+	c := calc.variables
+	fmt.Println("Variables: (", calc.VarCount(), ")")
+	for ; c != nil; c = c.next {
+		fmt.Println("{'"+c.name+"' ,", c.value, "}")
+	}
 }
 
 func (calc *RPNCalculator) StackPtr() *Stack {
@@ -144,9 +154,12 @@ func Top(calc *RPNCalculator) float64 {
 func Pop(calc *RPNCalculator) float64 {
 	return calc.StackPtr().Pop()
 }
-func Push(calc *RPNCalculator, p float64) {
-	calc.StackPtr().Push(p)
-}
+
+/*
+
+	Stack operations
+
+*/
 
 /*
 	Arithmetic operations
@@ -451,6 +464,15 @@ func swap(s *Stack) float64 {
 	return s.Top()
 }
 
+func height(s *Stack) float64 {
+	s.Push(float64(s.size))
+	return s.Top()
+}
+
+func pop(s *Stack) float64 {
+	return s.Pop()
+}
+
 /*
 	Constants
 */
@@ -538,6 +560,8 @@ func oplist() []opMap {
 		// Stack operations
 		{"dup", duplicate},
 		{"swap", swap},
+		{"pop", pop},
+		{"hgt", height},
 		// Constants
 		{"pi", pi},
 		{"tau", tau},
@@ -549,7 +573,6 @@ func oplist() []opMap {
 func handleVariable(calc *RPNCalculator, op string) bool {
 	if strings.HasPrefix(op, "@") {
 		vname := strings.TrimPrefix(op, "@")
-		//vname := op[1:]
 		var value float64
 		if strings.HasSuffix(op, "^") {
 			vname = strings.TrimSuffix(vname, "^")
@@ -557,17 +580,17 @@ func handleVariable(calc *RPNCalculator, op string) bool {
 		} else {
 			value = Top(calc)
 		}
-		calc.AddVariable(vname, value)
+		calc.SetVariable(vname, value)
 		fmt.Println("Setting", vname, "to", value)
 		return true
 	} else {
 		v := calc.GetVariable(op)
 		if v != nil {
-			Push(calc, v.value)
-			//fmt.Println("Pushing", v.name, "value (", v.value, ") to stack")
+			calc.StackPtr().Push(v.value)
 			return true
 		} else {
-			fmt.Println("Failed to interpret", op, " VarCount:", calc.VarCount())
+			fmt.Println("Failed to interpret '" + op + "'")
+			calc.PrintVariables()
 		}
 	}
 	return false
@@ -585,23 +608,6 @@ func handleFunction(calc *RPNCalculator, op string) bool {
 	return false
 }
 
-func processOperation(calc *RPNCalculator, input string) {
-	if len(input) == 0 {
-		return
-	}
-	i, err := strconv.ParseFloat(input, 64)
-	if err != nil {
-		op := strings.ToLower(strings.TrimLeft(strings.TrimRight(input, "\n"), " "))
-		found := handleFunction(calc, op)
-		if !found {
-			found = handleVariable(calc, op)
-		}
-	} else {
-		Push(calc, i)
-	}
-	fmt.Println("Top of stack:", Top(calc))
-}
-
 func processFile(calc *RPNCalculator, filename string) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -610,32 +616,54 @@ func processFile(calc *RPNCalculator, filename string) {
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		ops := strings.Split(strings.TrimRight(scanner.Text(), "\n"), " ")
-		for i := 0; i < len(ops); i++ {
-			processOperation(calc, ops[i])
-		}
+		processLine(calc, scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
 }
 
+func processOperation(calc *RPNCalculator, op string) {
+	if len(op) == 0 {
+		return
+	} else if strings.HasSuffix(op, ".rpn") {
+		fmt.Println("Loading file", op)
+		processFile(calc, op)
+		fmt.Println("End of file", op)
+		fmt.Println("Top of stack:", Top(calc))
+		return
+	}
+	i, err := strconv.ParseFloat(op, 64)
+	if err != nil {
+		found := handleFunction(calc, op)
+		if !found {
+			found = handleVariable(calc, op)
+		}
+	} else {
+		calc.StackPtr().Push(i)
+	}
+	fmt.Println("Top of stack:", Top(calc), "op:", op)
+}
+
+func processLine(calc *RPNCalculator, line string) {
+	line = strings.TrimLeft(strings.TrimRight(strings.ToLower(line), "\n"), " ")
+	ops := strings.Split(line, " ")
+	for i := 0; i < len(ops); i++ {
+		processOperation(calc, ops[i])
+	}
+}
+
 func interactiveMode(calc *RPNCalculator) {
 	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Entering interactive mode")
 	for {
-		//fmt.Scanln(&line)
+		fmt.Print(":")
 		line, _ := reader.ReadString('\n')
 		line = strings.TrimRight(strings.ToLower(line), "\n")
 		if line == "exit" || line == "quit" {
 			break
 		}
-		ops := strings.Fields(line)
-		//fmt.Println(ops)
-		for i := 0; i < len(ops); i++ {
-			//fmt.Println("Operation", ops[i])
-			processOperation(calc, ops[i])
-		}
-
+		processLine(calc, line)
 	}
 }
 
@@ -645,14 +673,7 @@ func main() {
 	argc := len(os.Args)
 	for i := 1; i < argc; i++ {
 		arg := os.Args[i]
-		if strings.HasSuffix(arg, ".rpn") {
-			processFile(&calc, arg)
-		} else {
-			args := strings.Split(arg, " ")
-			for j := 0; j < len(args); j++ {
-				processOperation(&calc, args[j])
-			}
-		}
+		processLine(&calc, arg)
 	}
 
 	if argc == 1 {
