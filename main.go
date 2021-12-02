@@ -1,6 +1,6 @@
 package main
 
-// https://horman.net/avisynth/rpn.html
+// reference: https://horman.net/avisynth/rpn.html
 
 import (
 	"bufio"
@@ -62,6 +62,10 @@ func (s Stack) IsEmpty() bool {
 	return s.size == 0
 }
 
+/*
+	Variable list
+*/
+
 type VariableListNoder interface {
 	Set(string, float64)
 	Get(string)
@@ -95,6 +99,10 @@ func (n *VariableListNode) Get(name string) *VariableListNode {
 	return nil
 }
 
+/*
+	Calculator, containing the stack and all variables
+*/
+
 type RPNCalculatorer interface {
 	SetVariable(string, float64)
 	GetVariable(string)
@@ -109,8 +117,8 @@ type RPNCalculator struct {
 	vsize     int
 }
 
-func ConstructCalculator() RPNCalculator {
-	return RPNCalculator{CreateStack(), nil, 0}
+func ConstructCalculator() *RPNCalculator {
+	return &RPNCalculator{CreateStack(), nil, 0}
 }
 
 func (calc *RPNCalculator) SetVariable(name string, value float64) {
@@ -165,173 +173,150 @@ func Pop(calc *RPNCalculator) float64 {
 	Arithmetic operations
 */
 
-func add(s *Stack) float64 {
+func add(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	s.Push(a + b)
-	return s.Top()
 }
 
-func subtract(s *Stack) float64 {
+func subtract(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	s.Push(a - b)
-	return s.Top()
 }
 
-func multiply(s *Stack) float64 {
+func multiply(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	s.Push(a * b)
-	return s.Top()
 }
 
-func divide(s *Stack) float64 {
+func divide(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	s.Push(a / b)
-	return s.Top()
 }
 
-func revDivide(s *Stack) float64 {
+func revDivide(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	s.Push(b / a)
-	return s.Top()
 }
 
-func power(s *Stack) float64 {
+func power(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	s.Push(math.Pow(a, b))
-	return s.Top()
 }
 
-func sqrt(s *Stack) float64 {
+func sqrt(s *Stack) {
 	a := s.Pop()
 	s.Push(math.Sqrt(a))
-	return s.Top()
 }
 
-func modulo(s *Stack) float64 {
+func modulo(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	s.Push(math.Mod(a, b))
-	return s.Top()
 }
 
-func abs(s *Stack) float64 {
+func abs(s *Stack) {
 	a := s.Pop()
 	s.Push(math.Abs(a))
-	return s.Top()
 }
 
-func negative(s *Stack) float64 {
+func negative(s *Stack) {
 	a := s.Pop()
 	s.Push(-a)
-	return s.Top()
 }
 
 /*
 	Min/max
 */
 
-func minimum(s *Stack) float64 {
+func minimum(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	s.Push(math.Min(a, b))
-	return s.Top()
 }
 
-func maximum(s *Stack) float64 {
+func maximum(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	s.Push(math.Max(a, b))
-	return s.Top()
 }
 
-func zmax(s *Stack) float64 {
+func zmax(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	s.Push(math.Max(0, math.Min(a, b)))
-	return s.Top()
 }
 
 /*
 	Random
 */
 
-func random(s *Stack) float64 {
+func random(s *Stack) {
 	s.Push(rand.Float64())
-	return s.Top()
 }
 
-func irandom(s *Stack) float64 {
+func irandom(s *Stack) {
 	r := s.Pop()
 	s.Push(float64(rand.Intn(int(r))))
-	return s.Top()
 }
 
 /*
 	Trigonometrical operations
 */
 
-func sin(s *Stack) float64 {
+func sin(s *Stack) {
 	a := s.Pop()
 	s.Push(math.Sin(a))
-	return s.Top()
 }
 
-func cosine(s *Stack) float64 {
+func cosine(s *Stack) {
 	a := s.Pop()
 	s.Push(math.Cos(a))
-	return s.Top()
 }
 
-func tan(s *Stack) float64 {
+func tan(s *Stack) {
 	a := s.Pop()
 	s.Push(math.Tan(a))
-	return s.Top()
 }
 
-func sincos(s *Stack) float64 {
+func sincos(s *Stack) {
 	a := s.Pop()
 	b, c := math.Sincos(a)
 	s.Push(b)
 	s.Push(c)
-	return s.Top()
 }
 
-func arcsin(s *Stack) float64 {
+func arcsin(s *Stack) {
 	a := s.Pop()
 	s.Push(math.Asin(a))
-	return s.Top()
 }
 
-func arccosine(s *Stack) float64 {
+func arccosine(s *Stack) {
 	a := s.Pop()
 	s.Push(math.Acos(a))
-	return s.Top()
 }
 
-func atan(s *Stack) float64 {
+func atan(s *Stack) {
 	a := s.Pop()
 	s.Push(math.Atan(a))
-	return s.Top()
 }
 
-func atan2(s *Stack) float64 {
+func atan2(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	s.Push(math.Atan2(a, b))
-	return s.Top()
 }
 
 /*
 	Comparison operations
 */
 
-func lessThan(s *Stack) float64 {
+func lessThan(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	if a < b {
@@ -339,10 +324,9 @@ func lessThan(s *Stack) float64 {
 	} else {
 		s.Push(0)
 	}
-	return s.Top()
 }
 
-func lessThanOrEqual(s *Stack) float64 {
+func lessThanOrEqual(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	if a <= b {
@@ -350,10 +334,9 @@ func lessThanOrEqual(s *Stack) float64 {
 	} else {
 		s.Push(0)
 	}
-	return s.Top()
 }
 
-func greaterThan(s *Stack) float64 {
+func greaterThan(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	if a > b {
@@ -361,10 +344,9 @@ func greaterThan(s *Stack) float64 {
 	} else {
 		s.Push(0)
 	}
-	return s.Top()
 }
 
-func greaterThanOrEqual(s *Stack) float64 {
+func greaterThanOrEqual(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	if a >= b {
@@ -372,10 +354,9 @@ func greaterThanOrEqual(s *Stack) float64 {
 	} else {
 		s.Push(0)
 	}
-	return s.Top()
 }
 
-func equal(s *Stack) float64 {
+func equal(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	if a == b {
@@ -383,10 +364,9 @@ func equal(s *Stack) float64 {
 	} else {
 		s.Push(0)
 	}
-	return s.Top()
 }
 
-func notEqual(s *Stack) float64 {
+func notEqual(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	if a != b {
@@ -394,48 +374,43 @@ func notEqual(s *Stack) float64 {
 	} else {
 		s.Push(0)
 	}
-	return s.Top()
 }
 
 /*
 	Bitwise operations
 */
 
-func bAnd(s *Stack) float64 {
+func bAnd(s *Stack) {
 	a := int(s.Pop())
 	b := int(s.Pop())
 	c := a & b
 	s.Push(float64(c))
-	return s.Top()
 }
 
-func bOr(s *Stack) float64 {
+func bOr(s *Stack) {
 	a := int(s.Pop())
 	b := int(s.Pop())
 	c := a | b
 	s.Push(float64(c))
-	return s.Top()
 }
 
-func bXor(s *Stack) float64 {
+func bXor(s *Stack) {
 	a := int(s.Pop())
 	b := int(s.Pop())
 	c := a ^ b
 	s.Push(float64(c))
-	return s.Top()
 }
 
-func bNot(s *Stack) float64 {
+func bNot(s *Stack) {
 	a := ^int(s.Pop())
 	s.Push(float64(a))
-	return s.Top()
 }
 
 /*
 	Conditional operator
 */
 
-func conditional(s *Stack) float64 {
+func conditional(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	c := s.Pop()
@@ -444,63 +419,55 @@ func conditional(s *Stack) float64 {
 	} else {
 		s.Push(b)
 	}
-	return s.Top()
 }
 
 /*
 	Stack operations
 */
 
-func duplicate(s *Stack) float64 {
+func duplicate(s *Stack) {
 	s.Push(s.Top())
-	return s.Top()
 }
 
-func swap(s *Stack) float64 {
+func swap(s *Stack) {
 	a := s.Pop()
 	b := s.Pop()
 	s.Push(a)
 	s.Push(b)
-	return s.Top()
 }
 
-func height(s *Stack) float64 {
+func height(s *Stack) {
 	s.Push(float64(s.size))
-	return s.Top()
 }
 
-func pop(s *Stack) float64 {
-	return s.Pop()
+func pop(s *Stack) {
+	s.Pop()
 }
 
 /*
 	Constants
 */
 
-func pi(s *Stack) float64 {
+func pi(s *Stack) {
 	s.Push(math.Pi)
-	return s.Top()
 }
 
-func tau(s *Stack) float64 {
+func tau(s *Stack) {
 	s.Push(math.Pi * 2)
-	return s.Top()
 }
 
-func ipi(s *Stack) float64 {
+func ipi(s *Stack) {
 	s.Push(1.0 / math.Pi)
-	return s.Top()
 }
 
-func itau(s *Stack) float64 {
+func itau(s *Stack) {
 	s.Push(1.0 / (math.Pi * 2))
-	return s.Top()
 }
 
 /*
 	Function map
 */
-type opFunc func(*Stack) float64
+type opFunc func(*Stack)
 type opMap struct {
 	name string
 	fnc  opFunc
@@ -673,12 +640,12 @@ func main() {
 	argc := len(os.Args)
 	for i := 1; i < argc; i++ {
 		arg := os.Args[i]
-		processLine(&calc, arg)
+		processLine(calc, arg)
 	}
 
 	if argc == 1 {
-		interactiveMode(&calc)
+		interactiveMode(calc)
 	}
 
-	fmt.Println("Top of stack at end:", Top(&calc))
+	fmt.Println("Top of stack at end:", Top(calc))
 }
